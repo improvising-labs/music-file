@@ -1,0 +1,13 @@
+{
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build:core": "yarn workspace music-file build",
+    "build:midi": "yarn workspace music-file-midi build",
+    "build:player": "yarn workspace music-file-player build",
+    "build:sampler": "yarn workspace music-file-sampler build",
+    "build:utils": "yarn workspace music-file-utils build"
+  }
+}
