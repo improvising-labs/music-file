@@ -10,17 +10,20 @@ export interface MFSampleADSR {
 }
 
 export class MFSample {
-  constructor(
-    public readonly audioBuffer: AudioBuffer,
-    public readonly adsr: MFSampleADSR = {
+  public readonly adsr: MFSampleADSR
+
+  constructor(public readonly audioBuffer: AudioBuffer) {
+    const { duration } = audioBuffer
+
+    this.adsr = {
       attackAmp: 1,
       attackTime: 0,
       decayAmp: 0.7,
-      decayTime: 0.5,
+      decayTime: duration * 0.4,
       sustainAmp: 0.8,
-      sustainTime: 0.7,
+      sustainTime: duration * 0.7,
       releaseAmp: 0,
-      releaseTime: 0.3,
-    },
-  ) {}
+      releaseTime: duration * 0.2,
+    }
+  }
 }
