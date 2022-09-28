@@ -1,4 +1,4 @@
-const MUSIC_FILE_SIGNATURE_TUPLES = [
+export const MUSIC_FILE_SIGNATURE_TUPLES = [
   [2, 2],
   [2, 4],
   [3, 4],
