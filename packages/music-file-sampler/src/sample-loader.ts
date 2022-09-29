@@ -1,3 +1,4 @@
+import { getPitchesBetween, Pitch } from './note-pitch'
 import { MFSample } from './sample'
 import { MFSampleManager } from './sample-manager'
 
@@ -22,14 +23,24 @@ export class MFSampleLoader {
 
   async loadInstrumentFromURL(
     instrumentURI: string,
-    url: string,
+    baseUrl: string,
+    {
+      pitchRange = ['A1', 'Gb7'],
+      sampleFilenameResolver = pitch => `${pitch}.mp3`,
+      sampleURIResolver = pitch => `sample:${pitch}`,
+    }: {
+      readonly pitchRange?: readonly [Pitch, Pitch]
+      readonly sampleFilenameResolver?: (pitch: Pitch) => string
+      readonly sampleURIResolver?: (pitch: Pitch) => string
+    } = {},
   ): Promise<void> {
-    const res = await fetch(url)
-    const json: Record<string, string> = await res.json()
-
     await Promise.all(
-      Object.entries(json).map(([sampleURI, url]) => {
-        return this.loadSampleFromURL(instrumentURI, sampleURI, url)
+      getPitchesBetween(pitchRange[0], pitchRange[1]).map(pitch => {
+        const sampleURI = sampleURIResolver(pitch)
+        const base = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
+        const url = new URL(sampleFilenameResolver(pitch), base)
+
+        return this.loadSampleFromURL(instrumentURI, sampleURI, url.href)
       }),
     )
   }
