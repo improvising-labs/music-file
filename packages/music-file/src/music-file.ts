@@ -76,7 +76,8 @@ export class MFMusicFile {
         .toArray()
         .filter(track => track.items.length > 0)
         .map(track => track.items.last.end)
-        .sort()[0] ?? 0
+        .sort()
+        .slice(-1)[0] ?? 0
 
     this.minValidNumTicks = longestTrackTicks
     this.minValidNumBars = Math.ceil(longestTrackTicks / this.numTicksPerBar)

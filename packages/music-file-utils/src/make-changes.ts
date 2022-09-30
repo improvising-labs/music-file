@@ -33,6 +33,7 @@ export interface ChangeActions {
   readonly musicFile: {
     readonly get: () => MFMusicFile
     readonly update: (params: MFMusicFileUpdateParams) => void
+    readonly ensureMinValidNumBars: () => void
     readonly tracks: {
       readonly get: () => MFTrackArray
       readonly select: (target: number | MFTrack) => {
@@ -69,6 +70,13 @@ export const makeChanges = (
         const resolvedParams = resolveParams(updatedMusicFile, params)
 
         updatedMusicFile = updatedMusicFile.copy(resolvedParams)
+      },
+      ensureMinValidNumBars: () => {
+        if (updatedMusicFile.minValidNumBars > updatedMusicFile.numBars) {
+          updatedMusicFile = updatedMusicFile.copy({
+            numBars: updatedMusicFile.minValidNumBars,
+          })
+        }
       },
       tracks: {
         get: () => updatedMusicFile.tracks,
