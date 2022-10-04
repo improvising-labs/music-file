@@ -44,6 +44,10 @@ export class MFTrackItem {
     this.duration = duration
   }
 
+  static is(other: unknown): other is MFTrackItem {
+    return other instanceof MFTrackItem
+  }
+
   static fromJSON(json: MFTrackItemJSON): MFTrackItem {
     if (json.__type !== 'trackItem') {
       throw new Error('invalid trackItem json type')
@@ -145,6 +149,10 @@ export class MFTrackItem {
 
 export class MFTrackItemArray {
   constructor(private readonly items: readonly MFTrackItem[] = []) {}
+
+  static is(other: unknown): other is MFTrackItemArray {
+    return other instanceof MFTrackItemArray
+  }
 
   static fromJSON(json: readonly MFTrackItemJSON[]): MFTrackItemArray {
     return new MFTrackItemArray(json.map(MFTrackItem.fromJSON))

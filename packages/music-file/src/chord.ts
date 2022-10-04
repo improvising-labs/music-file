@@ -89,6 +89,10 @@ export class MFChord {
     public readonly octave: MFOctave,
   ) {}
 
+  static is(other: unknown): other is MFChord {
+    return other instanceof MFChord
+  }
+
   static fromJSON(json: MFChordJSON): MFChord {
     if (json.__type !== 'chord') {
       throw new Error('invalid chord json type')

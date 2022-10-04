@@ -19,6 +19,10 @@ export class MFInstrument {
     this.resourceURI = resourceURI
   }
 
+  static is(other: unknown): other is MFInstrument {
+    return other instanceof MFInstrument
+  }
+
   static fromJSON(json: MFInstrumentJSON): MFInstrument {
     if (json.__type !== 'instrument') {
       throw new Error('invalid instrument json type')

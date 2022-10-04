@@ -83,6 +83,10 @@ export class MFMusicFile {
     this.minValidNumBars = Math.ceil(longestTrackTicks / this.numTicksPerBar)
   }
 
+  static is(other: unknown): other is MFMusicFile {
+    return other instanceof MFMusicFile
+  }
+
   static fromJSON(json: MFMusicFileJSON): MFMusicFile {
     if (json.__type !== 'musicFile') {
       throw new Error('invalid musicFile json type')

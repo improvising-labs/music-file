@@ -60,6 +60,10 @@ export interface MFKeyJSON {
 export class MFKey {
   constructor(public readonly name: MFKeyName) {}
 
+  static is(other: unknown): other is MFKey {
+    return other instanceof MFKey
+  }
+
   static fromJSON(json: MFKeyJSON): MFKey {
     if (json.__type !== 'key') {
       throw new Error('invalid key json type')

@@ -24,6 +24,10 @@ export class MFRef {
     this.resourceURI = resourceURI
   }
 
+  static is(other: unknown): other is MFRef {
+    return other instanceof MFRef
+  }
+
   static fromJSON(json: MFRefJSON): MFRef {
     if (json.__type !== 'ref') {
       throw new Error('invalid sample json type')

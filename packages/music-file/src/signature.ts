@@ -24,6 +24,10 @@ export class MFSignature {
     public readonly beatNoteType: MFSignatureBeatNoteType,
   ) {}
 
+  static is(other: unknown): other is MFSignature {
+    return other instanceof MFSignature
+  }
+
   static fromJSON(json: MFSignatureJSON): MFSignature {
     if (json.__type !== 'signature') {
       throw new Error('invalid signature json type')

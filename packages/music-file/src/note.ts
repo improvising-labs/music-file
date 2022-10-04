@@ -43,6 +43,10 @@ export class MFNote {
     public readonly octave: MFOctave,
   ) {}
 
+  static is(other: unknown): other is MFNote {
+    return other instanceof MFNote
+  }
+
   static fromJSON(json: MFNoteJSON): MFNote {
     if (json.__type !== 'note') {
       throw new Error('invalid note json type')
