@@ -38,19 +38,19 @@ export interface ChangeActions {
       readonly get: () => MFTrackArray
       readonly select: (target: number | MFTrack) => {
         readonly get: () => MFTrack
-        readonly update: (params: MFTrackUpdateParams) => void
+        readonly update: (params: MFTrackUpdateParams) => MFTrack
         readonly delete: () => void
         readonly items: {
           readonly get: () => MFTrackItemArray
           readonly select: (target: number | MFTrackItem) => {
             readonly get: () => MFTrackItem
-            readonly update: (params: MFTrackItemUpdateParams) => void
+            readonly update: (params: MFTrackItemUpdateParams) => MFTrackItem
             readonly delete: () => void
           }
-          readonly insert: (trackItem: MFTrackItem) => void
+          readonly insert: (trackItem: MFTrackItem) => number
         }
       }
-      readonly insert: (track: MFTrack) => void
+      readonly insert: (track: MFTrack) => number
       readonly insertAt: (trackNum: number, track: MFTrack) => void
       readonly swap: (a: number, b: number) => void
     }
@@ -94,13 +94,13 @@ export const makeChanges = (
             get: () => track,
             update: params => {
               const resolvedParams = resolveParams(track, params)
+              const updated = track.copy(resolvedParams)
 
               updatedMusicFile = updatedMusicFile.copy({
-                tracks: updatedMusicFile.tracks.replaceAt(
-                  trackNum,
-                  track.copy(resolvedParams),
-                ),
+                tracks: updatedMusicFile.tracks.replaceAt(trackNum, updated),
               })
+
+              return updated
             },
             delete: () => {
               updatedMusicFile = updatedMusicFile.copy({
@@ -121,6 +121,7 @@ export const makeChanges = (
                   get: () => trackItem,
                   update: params => {
                     const resolvedParams = resolveParams(trackItem, params)
+                    const updated = trackItem.copy(resolvedParams)
 
                     updatedMusicFile = updatedMusicFile.copy({
                       tracks: updatedMusicFile.tracks.replaceAt(
@@ -128,13 +129,12 @@ export const makeChanges = (
                         track.copy({
                           items: updatedMusicFile.tracks
                             .at(trackNum)
-                            .items.replace(
-                              trackItem,
-                              trackItem.copy(resolvedParams),
-                            ),
+                            .items.replace(trackItem, updated),
                         }),
                       ),
                     })
+
+                    return updated
                   },
                   delete: () => {
                     updatedMusicFile = updatedMusicFile.copy({
@@ -159,6 +159,11 @@ export const makeChanges = (
                     }),
                   ),
                 })
+
+                return updatedMusicFile.tracks
+                  .at(trackNum)
+                  .items.toArray()
+                  .indexOf(trackItem)
               },
             },
           }
@@ -167,6 +172,8 @@ export const makeChanges = (
           updatedMusicFile = updatedMusicFile.copy({
             tracks: updatedMusicFile.tracks.insert(track),
           })
+
+          return updatedMusicFile.tracks.toArray().indexOf(track)
         },
         insertAt: (trackNum, track) => {
           updatedMusicFile = updatedMusicFile.copy({
