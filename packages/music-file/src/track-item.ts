@@ -82,16 +82,15 @@ export class MFTrackItem {
     return this.source.constructor as MFTrackItemSourceType
   }
 
-  isTimeOverlappedWith(other: MFTrackItem): boolean {
-    const ranges = [
-      [this.begin, this.begin + this.duration],
-      [other.begin, other.begin + other.duration],
-    ]
-
+  isTimeWithin(begin: number, end: number): boolean {
     return (
-      (ranges[0][0] <= ranges[1][0] && ranges[0][1] > ranges[1][0]) ||
-      (ranges[1][0] <= ranges[0][0] && ranges[1][1] > ranges[0][0])
+      (this.begin <= begin && this.end > begin) ||
+      (this.begin >= begin && this.begin < end)
     )
+  }
+
+  isTimeOverlappedWith(other: MFTrackItem): boolean {
+    return this.isTimeWithin(other.begin, other.end)
   }
 
   isConsecutiveTo(other: MFTrackItem): boolean {
