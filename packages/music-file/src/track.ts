@@ -170,8 +170,24 @@ export class MFTrackArray {
     return this.tracks[this.tracks.length - 1]
   }
 
-  has(track: MFTrack): boolean {
-    return this.tracks.includes(track)
+  has(track: MFTrack): boolean
+  has(predicate: (value: MFTrack) => boolean): boolean
+  has(target: MFTrack | ((value: MFTrack) => boolean)): boolean {
+    if (typeof target === 'function') {
+      return this.tracks.some(target)
+    }
+
+    return this.tracks.includes(target)
+  }
+
+  indexOf(track: MFTrack): number
+  indexOf(predicate: (value: MFTrack) => boolean): number
+  indexOf(target: MFTrack | ((value: MFTrack) => boolean)): number {
+    if (typeof target === 'function') {
+      return this.tracks.findIndex(target)
+    }
+
+    return this.tracks.indexOf(target)
   }
 
   at(index: number): MFTrack {

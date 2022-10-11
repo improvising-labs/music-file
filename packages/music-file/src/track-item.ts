@@ -206,8 +206,24 @@ export class MFTrackItemArray {
     return this.items[this.items.length - 1]
   }
 
-  has(item: MFTrackItem): boolean {
-    return this.items.includes(item)
+  has(item: MFTrackItem): boolean
+  has(predicate: (value: MFTrackItem) => boolean): boolean
+  has(target: MFTrackItem | ((value: MFTrackItem) => boolean)): boolean {
+    if (typeof target === 'function') {
+      return this.items.some(target)
+    }
+
+    return this.items.includes(target)
+  }
+
+  indexOf(item: MFTrackItem): number
+  indexOf(predicate: (value: MFTrackItem) => boolean): number
+  indexOf(target: MFTrackItem | ((value: MFTrackItem) => boolean)): number {
+    if (typeof target === 'function') {
+      return this.items.findIndex(target)
+    }
+
+    return this.items.indexOf(target)
   }
 
   at(index: number): MFTrackItem {
@@ -218,8 +234,32 @@ export class MFTrackItemArray {
     return new MFTrackItemArray(this.items.slice(start, end))
   }
 
+  computeInsertPos(item: MFTrackItem): number {
+    if (this.items.length === 0 || this.items[0].begin > item.begin) {
+      return 0
+    } else {
+      let index = this.items.length - 1
+
+      while (index >= 0) {
+        const current = this.items[index]
+
+        if (current.begin <= item.begin) {
+          if (current.compareTo(item) < 0) {
+            return index + 1
+          } else {
+            return index
+          }
+        }
+
+        index--
+      }
+
+      return 0
+    }
+  }
+
   insert(item: MFTrackItem): MFTrackItemArray {
-    const index = this.computeTrackItemInsertPos(item)
+    const index = this.computeInsertPos(item)
 
     return new MFTrackItemArray(
       this.items.slice(0, index).concat(item).concat(this.items.slice(index)),
@@ -254,29 +294,5 @@ export class MFTrackItemArray {
 
   toJSON(): readonly MFTrackItemJSON[] {
     return this.items.map(item => item.toJSON())
-  }
-
-  private computeTrackItemInsertPos(item: MFTrackItem) {
-    if (this.items.length === 0 || this.items[0].begin > item.begin) {
-      return 0
-    } else {
-      let index = this.items.length - 1
-
-      while (index >= 0) {
-        const current = this.items[index]
-
-        if (current.begin <= item.begin) {
-          if (current.compareTo(item) < 0) {
-            return index + 1
-          } else {
-            return index
-          }
-        }
-
-        index--
-      }
-
-      return 0
-    }
   }
 }
