@@ -1,6 +1,7 @@
 import { MFKey, MFKeyJSON } from './key'
 import { MFSignature, MFSignatureJSON } from './signature'
-import { MFTrackArray, MFTrackJSON } from './track'
+import { MFTrack, MFTrackArray, MFTrackJSON } from './track'
+import { MFTrackItem } from './track-item'
 import {
   ensureValidUnitNoteType,
   MFUnitNoteType,
@@ -105,6 +106,30 @@ export class MFMusicFile {
       numBars: json.numBars,
       tracks: MFTrackArray.fromJSON(json.tracks),
     })
+  }
+
+  locate(track: MFTrack): readonly [number]
+  locate(trackItem: MFTrackItem): readonly [number, number]
+  locate(target: MFTrack | MFTrackItem) {
+    if (MFTrack.is(target)) {
+      const index = this.tracks.indexOf(target)
+
+      if (index >= 0) {
+        return [index] as const
+      }
+
+      throw new Error('track does not exist')
+    }
+
+    for (let i = 0; i < this.tracks.length; i++) {
+      const j = this.tracks.at(i).items.indexOf(target)
+
+      if (j >= 0) {
+        return [i, j] as const
+      }
+    }
+
+    throw new Error('trackItem does not exist')
   }
 
   equals(other: unknown): boolean {

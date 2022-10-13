@@ -207,7 +207,7 @@ export class MFTrackItemArray {
 
   has(item: MFTrackItem): boolean
   has(predicate: (value: MFTrackItem) => boolean): boolean
-  has(target: MFTrackItem | ((value: MFTrackItem) => boolean)): boolean {
+  has(target: MFTrackItem | ((value: MFTrackItem) => boolean)) {
     if (typeof target === 'function') {
       return this.items.some(target)
     }
@@ -217,7 +217,7 @@ export class MFTrackItemArray {
 
   indexOf(item: MFTrackItem): number
   indexOf(predicate: (value: MFTrackItem) => boolean): number
-  indexOf(target: MFTrackItem | ((value: MFTrackItem) => boolean)): number {
+  indexOf(target: MFTrackItem | ((value: MFTrackItem) => boolean)) {
     if (typeof target === 'function') {
       return this.items.findIndex(target)
     }
