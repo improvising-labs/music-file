@@ -22,9 +22,6 @@ export class MFSampleNode {
       readonly onSoundOff?: (sampleNode: MFSampleNode) => void
     } = {},
   ) {
-    this.ctx = ctx
-    this.volume = volume
-
     this.onSoundOn = onSoundOn
     this.onSoundOff = onSoundOff
 
@@ -45,7 +42,7 @@ export class MFSampleNode {
 
   soundOn(): void {
     const now = this.ctx.currentTime
-    const volume = this.volume / 100
+    const gainValue = this.volume / 100
 
     const {
       attackAmp,
@@ -57,10 +54,13 @@ export class MFSampleNode {
     } = this.sample.adsr
 
     this.gainNode.gain
-      .linearRampToValueAtTime(volume * attackAmp, now + attackTime)
-      .linearRampToValueAtTime(volume * decayAmp, now + attackTime + decayTime)
+      .linearRampToValueAtTime(gainValue * attackAmp, now + attackTime)
       .linearRampToValueAtTime(
-        volume * sustainAmp,
+        gainValue * decayAmp,
+        now + attackTime + decayTime,
+      )
+      .linearRampToValueAtTime(
+        gainValue * sustainAmp,
         now + attackTime + sustainTime,
       )
 
@@ -71,18 +71,25 @@ export class MFSampleNode {
 
   soundOff(): void {
     const now = this.ctx.currentTime
-    const volume = this.gainNode.gain.value
+    const gainValue = this.gainNode.gain.value
 
     const { releaseAmp, releaseTime } = this.sample.adsr
 
     this.gainNode.gain.linearRampToValueAtTime(
-      volume * releaseAmp,
+      gainValue * releaseAmp,
       now + releaseTime,
     )
 
-    this.sourceNode.stop(now + releaseTime + 0.001)
+    this.sourceNode.stop(now + releaseTime)
 
     this.onSoundOff?.(this)
+  }
+
+  setVolume(volume: number): void {
+    const now = this.ctx.currentTime
+    const gainValue = volume / 100
+
+    this.gainNode.gain.cancelScheduledValues(now).setValueAtTime(gainValue, now)
   }
 }
 
