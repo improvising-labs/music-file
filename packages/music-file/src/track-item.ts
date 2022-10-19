@@ -2,21 +2,13 @@ import { MFChord, MFChordJSON } from './chord'
 import { MFNote, MFNoteJSON } from './note'
 import { MFRef, MFRefJSON } from './ref'
 
-const _isReadonlyArray = (arg: any): arg is ReadonlyArray<any> =>
-  Array.isArray(arg)
-
-export type MFTrackItemSource = MFTrackItemArray | MFNote | MFChord | MFRef
+export type MFTrackItemSource = MFNote | MFChord | MFRef
 export type MFTrackItemSourceType =
-  | typeof MFTrackItemArray
   | typeof MFNote
   | typeof MFChord
   | typeof MFRef
 
-export type MFTrackItemSourceJSON =
-  | readonly MFTrackItemJSON[]
-  | MFNoteJSON
-  | MFChordJSON
-  | MFRefJSON
+export type MFTrackItemSourceJSON = MFNoteJSON | MFChordJSON | MFRefJSON
 
 export interface MFTrackItemJSON {
   readonly __type: 'trackItem'
@@ -53,15 +45,14 @@ export class MFTrackItem {
       throw new Error('invalid trackItem json type')
     }
 
-    const source = _isReadonlyArray(json.source)
-      ? MFTrackItemArray.fromJSON(json.source)
-      : json.source.__type === 'note'
-      ? MFNote.fromJSON(json.source)
-      : json.source.__type === 'chord'
-      ? MFChord.fromJSON(json.source)
-      : json.source.__type === 'ref'
-      ? MFRef.fromJSON(json.source)
-      : null
+    const source =
+      json.source.__type === 'note'
+        ? MFNote.fromJSON(json.source)
+        : json.source.__type === 'chord'
+        ? MFChord.fromJSON(json.source)
+        : json.source.__type === 'ref'
+        ? MFRef.fromJSON(json.source)
+        : null
 
     if (source === null) {
       throw new Error('invalid trackItem source json type')
@@ -137,9 +128,7 @@ export class MFTrackItem {
   toJSON(): MFTrackItemJSON {
     return {
       __type: 'trackItem',
-      source: _isReadonlyArray(this.source)
-        ? this.source.map(item => item.toJSON())
-        : this.source.toJSON(),
+      source: this.source.toJSON(),
       begin: this.begin,
       duration: this.duration,
     }
