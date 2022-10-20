@@ -30,7 +30,7 @@ export class MFRef {
 
   static fromJSON(json: MFRefJSON): MFRef {
     if (json.__type !== 'ref') {
-      throw new Error('invalid sample json type')
+      throw new Error('invalid ref json type')
     }
 
     return new MFRef({

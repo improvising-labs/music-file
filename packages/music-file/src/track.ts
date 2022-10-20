@@ -212,7 +212,7 @@ export class MFTrackArray {
   }
 
   delete(track: MFTrack): MFTrackArray {
-    return new MFTrackArray(this.tracks.filter(item => item !== track))
+    return new MFTrackArray(this.tracks.filter(value => value !== track))
   }
 
   deleteAt(index: number): MFTrackArray {

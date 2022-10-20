@@ -2,38 +2,51 @@ import { MFChord, MFChordJSON } from './chord'
 import { MFNote, MFNoteJSON } from './note'
 import { MFRef, MFRefJSON } from './ref'
 
-export type MFTrackItemSource = MFNote | MFChord | MFRef
+const _isReadonlyArray = (arg: any): arg is ReadonlyArray<any> =>
+  Array.isArray(arg)
+
+export type MFTrackItemSource = MFTrackItemArray | MFNote | MFChord | MFRef
 export type MFTrackItemSourceType =
+  | typeof MFTrackItemArray
   | typeof MFNote
   | typeof MFChord
   | typeof MFRef
 
-export type MFTrackItemSourceJSON = MFNoteJSON | MFChordJSON | MFRefJSON
+export type MFTrackItemSourceJSON =
+  | readonly MFTrackItemJSON[]
+  | MFNoteJSON
+  | MFChordJSON
+  | MFRefJSON
 
 export interface MFTrackItemJSON {
   readonly __type: 'trackItem'
   readonly source: MFTrackItemSourceJSON
   readonly begin: number
   readonly duration: number
+  readonly loopsDuration: number
 }
 
 export class MFTrackItem {
   public readonly source: MFTrackItemSource
   public readonly begin: number
   public readonly duration: number
+  public readonly loopsDuration: number
 
   constructor({
     source,
     begin,
     duration,
+    loopsDuration = 0,
   }: {
     readonly source: MFTrackItemSource
     readonly begin: number
     readonly duration: number
+    readonly loopsDuration?: number
   }) {
     this.source = source
     this.begin = begin
     this.duration = duration
+    this.loopsDuration = loopsDuration
   }
 
   static is(other: unknown): other is MFTrackItem {
@@ -45,14 +58,15 @@ export class MFTrackItem {
       throw new Error('invalid trackItem json type')
     }
 
-    const source =
-      json.source.__type === 'note'
-        ? MFNote.fromJSON(json.source)
-        : json.source.__type === 'chord'
-        ? MFChord.fromJSON(json.source)
-        : json.source.__type === 'ref'
-        ? MFRef.fromJSON(json.source)
-        : null
+    const source = _isReadonlyArray(json.source)
+      ? MFTrackItemArray.fromJSON(json.source)
+      : json.source.__type === 'note'
+      ? MFNote.fromJSON(json.source)
+      : json.source.__type === 'chord'
+      ? MFChord.fromJSON(json.source)
+      : json.source.__type === 'ref'
+      ? MFRef.fromJSON(json.source)
+      : null
 
     if (source === null) {
       throw new Error('invalid trackItem source json type')
@@ -62,11 +76,16 @@ export class MFTrackItem {
       source,
       begin: json.begin,
       duration: json.duration,
+      loopsDuration: json.loopsDuration,
     })
   }
 
   get end(): number {
     return this.begin + this.duration
+  }
+
+  get hasLoops(): boolean {
+    return this.loopsDuration > 0
   }
 
   get sourceType(): MFTrackItemSourceType {
@@ -85,16 +104,16 @@ export class MFTrackItem {
   }
 
   isConsecutiveTo(other: MFTrackItem): boolean {
-    return this.begin + this.duration === other.begin
+    return this.end === other.begin
   }
 
   compareTo(other: MFTrackItem) {
     if (this.begin === other.begin) {
-      if (this.duration === other.duration) {
+      if (this.end === other.end) {
         return 0
       }
 
-      return this.duration < other.duration ? -1 : 1
+      return this.end < other.end ? -1 : 1
     } else {
       return this.begin < other.begin ? -1 : 1
     }
@@ -105,7 +124,8 @@ export class MFTrackItem {
       other instanceof MFTrackItem &&
       other.source.equals(this.source) &&
       other.begin === this.begin &&
-      other.duration === this.duration
+      other.duration === this.duration &&
+      other.loopsDuration === this.loopsDuration
     )
   }
 
@@ -113,15 +133,18 @@ export class MFTrackItem {
     source,
     begin,
     duration,
+    loopsDuration,
   }: {
     readonly source?: MFTrackItemSource
     readonly begin?: number
     readonly duration?: number
+    readonly loopsDuration?: number
   }): MFTrackItem {
     return new MFTrackItem({
       source: source ?? this.source,
       begin: begin ?? this.begin,
       duration: duration ?? this.duration,
+      loopsDuration: loopsDuration ?? this.loopsDuration,
     })
   }
 
@@ -131,6 +154,7 @@ export class MFTrackItem {
       source: this.source.toJSON(),
       begin: this.begin,
       duration: this.duration,
+      loopsDuration: this.loopsDuration,
     }
   }
 }
