@@ -42,6 +42,14 @@ export class MFMusicFilePlayer {
     return this
   }
 
+  getCurrentTick(): number {
+    return this.currentTick
+  }
+
+  isPlaying(): boolean {
+    return this.playing
+  }
+
   start(): MFMusicFilePlayer {
     if (this.state === null) {
       throw new Error('state is not compiled')
