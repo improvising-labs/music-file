@@ -3,110 +3,171 @@ import {
   MFMusicFile,
   MFNote,
   MFRef,
-  MFTrack,
   MFTrackItem,
+  MFTrackItemArray,
 } from 'music-file'
 import { MFSamplePlayer } from 'music-file-sampler'
 
-export class MFMusicFilePlayback {
-  private readonly onTick?: (currentTick: number) => void
-  private readonly onEnd?: (currentTick: number) => void
+export type PlaybackSubscriber = (currentTick: number, end?: boolean) => void
 
+export interface PlaybackState {
+  musicFile: MFMusicFile
+  timeline: Record<number, [number, MFTrackItem][]>
+}
+
+export class MFMusicFilePlayer {
   private currentTick: number
-  private disposed: boolean
+  private playing: boolean
+  private state: PlaybackState | null
+  private subscribers: PlaybackSubscriber[]
 
-  constructor(
-    private readonly samplePlayer: MFSamplePlayer,
-    private readonly musicFile: MFMusicFile,
-    {
-      initialTick = 0,
-      onTick,
-      onEnd,
-    }: {
-      readonly initialTick?: number
-      readonly onTick?: (currentTick: number) => void
-      readonly onEnd?: (currentTick: number) => void
-    } = {},
-  ) {
-    this.onTick = onTick
-    this.onEnd = onEnd
-
-    this.currentTick = initialTick
-    this.disposed = false
-
-    this.tick()
+  constructor(private readonly samplePlayer: MFSamplePlayer) {
+    this.currentTick = 0
+    this.playing = false
+    this.state = null
+    this.subscribers = []
   }
 
-  dispose(): void {
-    this.samplePlayer.stopAllSamples()
-    this.disposed = true
+  setMusicFile(musicFile: MFMusicFile) {
+    this.state = this.compileState(musicFile)
+  }
+
+  setCurrentTick(tick: number): MFMusicFilePlayer {
+    if (this.state === null) {
+      throw new Error('state is not compiled')
+    }
+
+    this.currentTick = tick
+
+    return this
+  }
+
+  start(): MFMusicFilePlayer {
+    if (this.state === null) {
+      throw new Error('state is not compiled')
+    }
+
+    this.playing = true
+    this.tick()
+
+    return this
+  }
+
+  stop(): MFMusicFilePlayer {
+    if (this.state === null) {
+      throw new Error('state is not compiled')
+    }
+
+    this.playing = false
+
+    return this
+  }
+
+  subscribe(cb: PlaybackSubscriber): () => void {
+    this.subscribers.push(cb)
+
+    return () => {
+      this.subscribers = this.subscribers.filter(value => value !== cb)
+    }
   }
 
   private tick(): void {
-    if (this.disposed) {
+    if (!this.playing || !this.state) {
       return
     }
 
-    if (this.currentTick >= this.musicFile.numTicks) {
-      this.onEnd?.(this.currentTick)
+    if (this.currentTick >= this.state.musicFile.numTicks) {
+      this.playing = false
+      this.notifySubscribers()
       return
     }
 
-    for (const track of this.musicFile.tracks.toArray()) {
-      for (const trackItem of track.items.toArray()) {
-        if (trackItem.begin === this.currentTick) {
-          this.playTrackItem(track, trackItem)
-        }
+    if (this.currentTick in this.state.timeline) {
+      for (const [trackNum, item] of this.state.timeline[this.currentTick]) {
+        this.playTrackItem(trackNum, item)
       }
     }
 
-    this.onTick?.(this.currentTick)
+    this.notifySubscribers()
     this.currentTick++
 
-    setTimeout(this.tick.bind(this), this.musicFile.tickMs)
+    setTimeout(this.tick.bind(this), this.state.musicFile.tickMs)
   }
 
-  private playTrackItem(track: MFTrack, trackItem: MFTrackItem): void {
-    if (trackItem.source instanceof MFNote) {
+  private playTrackItem(trackNum: number, trackItem: MFTrackItem): void {
+    if (!this.playing || !this.state) {
+      return
+    }
+
+    const { key, tickMs, tracks } = this.state.musicFile
+    const { instrument, volume } = tracks.at(trackNum)
+    const { source, duration } = trackItem
+
+    if (source instanceof MFNote) {
       this.samplePlayer.playSampleByNote({
-        instrumentURI: track.instrument.resourceURI,
-        note: trackItem.source,
-        key: this.musicFile.key,
-        volume: track.volume,
-        durationMs: trackItem.duration * this.musicFile.tickMs,
+        instrumentURI: instrument.resourceURI,
+        note: source,
+        key,
+        volume,
+        durationMs: duration * tickMs,
       })
-    } else if (trackItem.source instanceof MFChord) {
+    } else if (source instanceof MFChord) {
       this.samplePlayer.playSamplesByChord({
-        instrumentURI: track.instrument.resourceURI,
-        chord: trackItem.source,
-        key: this.musicFile.key,
-        volume: track.volume,
-        durationMs: trackItem.duration * this.musicFile.tickMs,
+        instrumentURI: instrument.resourceURI,
+        chord: source,
+        key,
+        volume,
+        durationMs: duration * tickMs,
       })
-    } else if (trackItem.source instanceof MFRef) {
-      if (trackItem.source.typeURI === 'type:sampler:sample') {
+    } else if (source instanceof MFRef) {
+      if (source.typeURI === 'type:sampler:sample') {
         this.samplePlayer.playSample({
-          instrumentURI: track.instrument.resourceURI,
-          sampleURI: trackItem.source.resourceURI,
-          volume: track.volume,
-          durationMs: trackItem.duration * this.musicFile.tickMs,
+          instrumentURI: instrument.resourceURI,
+          sampleURI: source.resourceURI,
+          volume,
+          durationMs: duration * tickMs,
         })
       }
     }
   }
-}
 
-export class MFMusicFilePlayer {
-  constructor(private readonly samplePlayer: MFSamplePlayer) {}
+  private compileState(musicFile: MFMusicFile): PlaybackState {
+    const { tracks } = musicFile
 
-  createPlayback(
-    musicFile: MFMusicFile,
-    params: {
-      readonly initialTick?: number
-      readonly onTick?: (currentTick: number) => void
-      readonly onEnd?: (currentTick: number) => void
-    } = {},
-  ): MFMusicFilePlayback {
-    return new MFMusicFilePlayback(this.samplePlayer, musicFile, params)
+    const state: PlaybackState = {
+      musicFile,
+      timeline: {},
+    }
+
+    for (let trackNum = 0; trackNum < musicFile.tracks.length; trackNum++) {
+      const { items } = tracks.at(trackNum)
+
+      for (const item of items.toArray()) {
+        const { source } = item
+
+        if (source instanceof MFTrackItemArray) {
+          for (const subItem of source.toArray()) {
+            state.timeline[item.begin + subItem.begin] ??= []
+            state.timeline[item.begin + subItem.begin].push([trackNum, subItem])
+          }
+        } else {
+          state.timeline[item.begin] ??= []
+          state.timeline[item.begin].push([trackNum, item])
+        }
+      }
+    }
+
+    return state
+  }
+
+  private notifySubscribers(): void {
+    if (!this.state) {
+      return
+    }
+
+    const currentTick = this.currentTick
+    const end = currentTick === this.state.musicFile.numTicks
+
+    this.subscribers.forEach(cb => cb(currentTick, end))
   }
 }
