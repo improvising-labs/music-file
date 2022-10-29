@@ -4,7 +4,7 @@ import {
   MFNote,
   MFRef,
   MFTrackItem,
-  MFTrackItemArray,
+  MFTrackItemFragment,
 } from 'music-file'
 import { MFSamplePlayer } from 'music-file-sampler'
 
@@ -111,7 +111,7 @@ export class MFMusicFilePlayer {
     const { instrument, volume } = tracks.at(trackNum)
     const { source, duration } = trackItem
 
-    if (source instanceof MFNote) {
+    if (MFNote.is(source)) {
       this.samplePlayer.playSampleByNote({
         instrumentURI: instrument.resourceURI,
         note: source,
@@ -119,7 +119,7 @@ export class MFMusicFilePlayer {
         volume,
         durationMs: duration * tickMs,
       })
-    } else if (source instanceof MFChord) {
+    } else if (MFChord.is(source)) {
       this.samplePlayer.playSamplesByChord({
         instrumentURI: instrument.resourceURI,
         chord: source,
@@ -127,7 +127,7 @@ export class MFMusicFilePlayer {
         volume,
         durationMs: duration * tickMs,
       })
-    } else if (source instanceof MFRef) {
+    } else if (MFRef.is(source)) {
       if (source.typeURI === 'type:sampler:sample') {
         this.samplePlayer.playSample({
           instrumentURI: instrument.resourceURI,
@@ -153,8 +153,8 @@ export class MFMusicFilePlayer {
       for (const item of items.toArray()) {
         const { source } = item
 
-        if (source instanceof MFTrackItemArray) {
-          for (const subItem of source.toArray()) {
+        if (MFTrackItemFragment.is(source)) {
+          for (const subItem of source.items.toArray()) {
             state.timeline[item.begin + subItem.begin] ??= []
             state.timeline[item.begin + subItem.begin].push([trackNum, subItem])
           }
